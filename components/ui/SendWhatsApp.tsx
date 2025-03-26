@@ -9,7 +9,7 @@ export default function SendWhatsApp() {
   const sendMessage = async () => {
     setStatus("Sending message..."); // Update the status during sending
     try {
-      const response = await fetch("http://localhost:3000/send-message", {
+      const response = await fetch("http://localhost:3001/send-message", {
         // Make sure this points to the correct port
         method: "POST",
         headers: { "Content-Type": "application/json" },
