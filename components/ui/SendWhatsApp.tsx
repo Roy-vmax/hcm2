@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "./button";
 
 export default function SendWhatsApp() {
   const [message, setMessage] = useState("");
@@ -19,7 +20,8 @@ export default function SendWhatsApp() {
       const data = await response.json();
 
       if (data.success) {
-        setStatus("Message sent successfully!"); // If the message is sent successfully
+        setStatus("Message sent successfully!");
+        setMessage(""); // If the message is sent successfully
       } else {
         setStatus("Failed to send the message.");
       }
@@ -30,15 +32,18 @@ export default function SendWhatsApp() {
   };
 
   return (
-    <div className="flex flex-col pt-5">
-      <input
-        type="text"
+    <div className="flex flex-col pt-5 px-4">
+      <textarea
+        rows={3}
         placeholder="Send Whatsapp Message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
+        className="w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      <button onClick={sendMessage}>Send To Whatsapp</button>
-      {status && <p>{status}</p>} {/* Display the status to the user */}
+      <Button className="mt-6" onClick={sendMessage}>
+        Send To Whatsapp
+      </Button>
+      {status && <p className="mt-2 text-green-600">{status}</p>}{" "}
     </div>
   );
 }
