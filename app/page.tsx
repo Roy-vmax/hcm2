@@ -3,6 +3,11 @@ import Link from "next/link";
 
 import { PatientForm } from "@/components/forms/PatientForm";
 import { PasskeyModal } from "@/components/PasskeyModal";
+<<<<<<< HEAD
+=======
+import ContactByWhatsapp from "@/components/ui/SendWhatsApp";
+import SendWhatsApp from "@/components/ui/SendWhatsApp";
+>>>>>>> master
 
 const Home = ({ searchParams }: SearchParamProps) => {
   const isAdmin = searchParams?.admin === "true";
@@ -31,6 +36,10 @@ const Home = ({ searchParams }: SearchParamProps) => {
               Admin
             </Link>
           </div>
+<<<<<<< HEAD
+=======
+          <SendWhatsApp />
+>>>>>>> master
         </div>
       </section>
 
