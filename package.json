@@ -52,7 +52,6 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "twilio": "^5.5.1",
->>>>>>> master
     "zod": "^3.23.6"
   },
   "devDependencies": {
