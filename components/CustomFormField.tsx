@@ -80,7 +80,11 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
       return (
         <FormControl>
           <PhoneInput
+<<<<<<< HEAD
             defaultCountry="US"
+=======
+            defaultCountry="TR"
+>>>>>>> master
             placeholder={props.placeholder}
             international
             withCountryCallingCode
