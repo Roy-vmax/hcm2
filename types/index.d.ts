@@ -55,3 +55,26 @@ declare type UpdateAppointmentParams = {
   appointment: Appointment;
   type: string;
 };
+// types.d.ts - Place this at the root level
+
+// Search parameters types
+interface SearchParamProps {
+  params: {
+    userId: string;
+    [key: string]: string;
+  };
+  searchParams?: {
+    [key: string]: string;
+  };
+}
+
+// User types
+interface User {
+  $id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+// Status type for appointments
+type Status = "pending" | "scheduled" | "cancelled" | "completed";
