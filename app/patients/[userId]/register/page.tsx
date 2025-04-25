@@ -8,7 +8,15 @@ const Register = async ({ params: { userId } }: SearchParamProps) => {
   const user = await getUser(userId);
   const patient = await getPatient(userId);
 
-  if (patient) redirect(`/patients/${userId}/new-appointment`);
+  if (patient) {
+    // If patient already exists, redirect to appointment page
+    return redirect(`/patients/${userId}/new-appointment`);
+  }
+
+  // If user doesn't exist at all, redirect to home
+  if (!user) {
+    return redirect("/");
+  }
 
   return (
     <div className="flex h-screen max-h-screen">
@@ -24,7 +32,7 @@ const Register = async ({ params: { userId } }: SearchParamProps) => {
 
           <RegisterForm user={user} />
 
-          <p className="copyright py-12">© 2024 CarePluse</p>
+          <p className="copyright py-12">© 2025 CarePulse</p>
         </div>
       </section>
 

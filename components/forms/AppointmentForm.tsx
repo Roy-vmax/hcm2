@@ -22,6 +22,13 @@ import CustomFormField, { FormFieldType } from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
 import { Form } from "../ui/form";
 
+// Add payment method enum
+export enum PaymentMethod {
+  CREDIT_CARD = "Credit Card",
+  DEBIT_CARD = "Debit Card",
+  INSURANCE = "Insurance"
+}
+
 export const AppointmentForm = ({
   userId,
   patientId,
@@ -37,11 +44,39 @@ export const AppointmentForm = ({
 }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
+  // Extended appointment schema to include payment details
   const AppointmentFormValidation = getAppointmentSchema(type);
 
-  const form = useForm<z.infer<typeof AppointmentFormValidation>>({
-    resolver: zodResolver(AppointmentFormValidation),
+  // Extend the validation schema with payment fields
+  const ExtendedFormValidation = z.object({
+    ...AppointmentFormValidation.shape,
+    paymentMethod: z.enum([
+      PaymentMethod.CREDIT_CARD,
+      PaymentMethod.DEBIT_CARD,
+      PaymentMethod.INSURANCE
+    ]).optional(),
+    cardNumber: z.string().optional().refine(
+      (value) => !showPayment || (value && value.replace(/\s/g, '').length === 16),
+      { message: "Card number must be 16 digits" }
+    ),
+    cardholderName: z.string().optional().refine(
+      (value) => !showPayment || (value && value.length > 0),
+      { message: "Cardholder name is required" }
+    ),
+    expiryDate: z.string().optional().refine(
+      (value) => !showPayment || (value && /^(0[1-9]|1[0-2])\/\d{2}$/.test(value)),
+      { message: "Expiry date must be in MM/YY format" }
+    ),
+    cvv: z.string().optional().refine(
+      (value) => !showPayment || (value && /^\d{3,4}$/.test(value)),
+      { message: "CVV must be 3 or 4 digits" }
+    ),
+  });
+
+  const form = useForm<z.infer<typeof ExtendedFormValidation>>({
+    resolver: zodResolver(ExtendedFormValidation),
     defaultValues: {
       primaryPhysician: appointment ? appointment?.primaryPhysician : "",
       schedule: appointment
@@ -50,12 +85,22 @@ export const AppointmentForm = ({
       reason: appointment ? appointment.reason : "",
       note: appointment?.note || "",
       cancellationReason: appointment?.cancellationReason || "",
+      paymentMethod: PaymentMethod.CREDIT_CARD,
+      cardNumber: "",
+      cardholderName: "",
+      expiryDate: "",
+      cvv: "",
     },
   });
 
   const onSubmit = async (
-    values: z.infer<typeof AppointmentFormValidation>
+    values: z.infer<typeof ExtendedFormValidation>
   ) => {
+    if (type === "create" && !showPayment) {
+      setShowPayment(true);
+      return;
+    }
+
     setIsLoading(true);
 
     let status;
@@ -80,6 +125,7 @@ export const AppointmentForm = ({
           reason: values.reason!,
           status: status as Status,
           note: values.note,
+          // We're not actually sending payment info to backend, just collecting it on frontend
         };
 
         const newAppointment = await createAppointment(appointment);
@@ -94,7 +140,7 @@ export const AppointmentForm = ({
         const appointmentToUpdate = {
           userId,
           appointmentId: appointment?.$id!,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Add timeZone property
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           appointment: {
             primaryPhysician: values.primaryPhysician,
             schedule: new Date(values.schedule),
@@ -117,6 +163,39 @@ export const AppointmentForm = ({
     setIsLoading(false);
   };
 
+  // Format card number with spaces
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+
+    for (let i = 0; i < match.length; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return value;
+    }
+  };
+
+  // Handle card number input
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatCardNumber(e.target.value);
+    form.setValue('cardNumber', formattedValue);
+  };
+
+  // Handle expiry date formatting
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 2) {
+      value = value.substring(0, 2) + '/' + value.substring(2, 4);
+    }
+    form.setValue('expiryDate', value);
+  };
+
   let buttonLabel;
   switch (type) {
     case "cancel":
@@ -126,7 +205,7 @@ export const AppointmentForm = ({
       buttonLabel = "Schedule Appointment";
       break;
     default:
-      buttonLabel = "Submit Apppointment";
+      buttonLabel = showPayment ? "Submit Payment & Appointment" : "Proceed to Payment";
   }
 
   return (
@@ -141,7 +220,7 @@ export const AppointmentForm = ({
           </section>
         )}
 
-        {type !== "cancel" && (
+        {type !== "cancel" && !showPayment && (
           <>
             <CustomFormField
               fieldType={FormFieldType.SELECT}
@@ -183,7 +262,7 @@ export const AppointmentForm = ({
                 control={form.control}
                 name="reason"
                 label="Appointment reason"
-                placeholder="Annual montly check-up"
+                placeholder="Annual monthly check-up"
                 disabled={type === "schedule"}
               />
 
@@ -207,6 +286,97 @@ export const AppointmentForm = ({
             label="Reason for cancellation"
             placeholder="Urgent meeting came up"
           />
+        )}
+
+        {type === "create" && showPayment && (
+          <section className="space-y-6">
+            <div className="mb-6 space-y-1">
+              <h2 className="sub-header">Payment Information</h2>
+              <p className="text-dark-700">Please provide your payment details</p>
+            </div>
+
+            <CustomFormField
+              fieldType={FormFieldType.SELECT}
+              control={form.control}
+              name="paymentMethod"
+              label="Payment Method"
+              placeholder="Select payment method"
+            >
+              {Object.values(PaymentMethod).map((method) => (
+                <SelectItem key={method} value={method}>
+                  <div className="flex cursor-pointer items-center gap-2">
+                    <Image
+                      src={`/assets/icons/${method === PaymentMethod.CREDIT_CARD 
+                        ? 'credit-card' 
+                        : method === PaymentMethod.DEBIT_CARD 
+                        ? 'debit-card' 
+                        : 'insurance'}.svg`}
+                      width={20}
+                      height={20}
+                      alt={method.toLowerCase()}
+                      className="h-5 w-5"
+                    />
+                    <p>{method}</p>
+                  </div>
+                </SelectItem>
+              ))}
+            </CustomFormField>
+
+            <div className="flex flex-col gap-6 xl:flex-row">
+              <CustomFormField
+                fieldType={FormFieldType.INPUT}
+                control={form.control}
+                name="cardNumber"
+                label="Card Number"
+                placeholder="1234 5678 9012 3456"
+                onChange={handleCardNumberChange}
+                maxLength={19}
+              />
+
+              <CustomFormField
+                fieldType={FormFieldType.INPUT}
+                control={form.control}
+                name="cardholderName"
+                label="Cardholder Name"
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div className="flex flex-col gap-6 xl:flex-row">
+              <CustomFormField
+                fieldType={FormFieldType.INPUT}
+                control={form.control}
+                name="expiryDate"
+                label="Expiry Date (MM/YY)"
+                placeholder="MM/YY"
+                onChange={handleExpiryChange}
+                maxLength={5}
+              />
+
+              <CustomFormField
+                fieldType={FormFieldType.INPUT}
+                control={form.control}
+                name="cvv"
+                label="CVV"
+                placeholder="123"
+                maxLength={4}
+                type="password"
+              />
+            </div>
+
+            <div className="mt-4 rounded-lg bg-blue-50 p-4 text-blue-800">
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/assets/icons/info.svg"
+                  width={20}
+                  height={20}
+                  alt="info"
+                  className="h-5 w-5"
+                />
+                <p className="text-sm font-medium">This is a demo payment form. No actual payment will be processed.</p>
+              </div>
+            </div>
+          </section>
         )}
 
         <SubmitButton
