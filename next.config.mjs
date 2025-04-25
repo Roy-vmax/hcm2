@@ -12,7 +12,7 @@ export default withSentryConfig(withSentryConfig(withSentryConfig(withSentryConf
 // For all available options, see:
 // https://github.com/getsentry/sentry-webpack-plugin#options
 
-org: "javascript-mastery",
+org: "fnl-n9",
 project: "care-pulse",
 
 // Only print logs for uploading source maps in CI
